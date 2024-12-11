@@ -4,11 +4,11 @@ import org.springframework.beans.factory.annotation.Value;
 
 public class DBConfig {
     @Value("spring.datasource.url")
-    private String url;
+    protected String url;
     @Value("spring.datasource.username")
-    private String username;
+    protected String username;
     @Value("spring.datasource.password")
-    private String password;
+    protected String password;
 
     public DBConfig() {
     }
