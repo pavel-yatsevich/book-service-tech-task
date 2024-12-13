@@ -4,11 +4,13 @@ import com.ifortex.bookservice.dto.SearchCriteria;
 import com.ifortex.bookservice.model.Book;
 import com.ifortex.bookservice.repo.BookServiceRepository;
 import com.ifortex.bookservice.service.BookService;
+import org.springframework.stereotype.Service;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+@Service
 public class BookServiceImpl implements BookService {
 
     private final BookServiceRepository bookServiceRepository = new BookServiceRepository();
