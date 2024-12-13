@@ -2,22 +2,24 @@ package com.ifortex.bookservice.repo;
 
 import com.ifortex.bookservice.dto.SearchCriteria;
 import com.ifortex.bookservice.model.Book;
+import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.*;
 
-public class BookServiceRepository extends DBConfig {
+@Repository
+public class BookRepository extends DBConfig {
 
     public Map<String, Long> getBooks() throws SQLException {
         String getAllBooksByGenreSQL = "SELECT UNNEST(genre) AS genres, COUNT(*) AS number_of_books " +
-                "FROM books GROUP BY genres ORDER BY number_of_books DESC";
-        Map<String, Long> books = new HashMap<>();
+                "FROM books GROUP BY genres ORDER BY number_of_books DESC;";
+        Map<String, Long> books = new LinkedHashMap<>();
 
         try (Connection connection = DriverManager.getConnection(url, username, password);
              ResultSet resultSet = connection.prepareStatement(getAllBooksByGenreSQL)
                      .executeQuery()) {
             while (resultSet.next()) {
-                books.put(resultSet.getString("genre"), resultSet.getLong("number_of_books"));
+                books.put(resultSet.getString("genres"), resultSet.getLong("number_of_books"));
             }
         }
         return books;
@@ -26,7 +28,7 @@ public class BookServiceRepository extends DBConfig {
     public List<Book> getAllByCriteria(SearchCriteria searchCriteria) throws SQLException {
         String getBooksByCriteriaSQL = "SELECT * FROM books WHERE title ILIKE ? AND author ILIKE ? " +
                 "AND array_to_string(genre, ',') ILIKE ? AND description ILIKE ? " +
-                "AND publication_date BETWEEN ? and ? ORDER BY publication_date";
+                "AND publication_date BETWEEN CAST( ? AS TIMESTAMP) AND CAST( ? AS TIMESTAMP) ORDER BY publication_date";
         List<Book> books = new ArrayList<>();
 
         try (Connection connection = DriverManager.getConnection(url, username, password);
@@ -45,22 +47,37 @@ public class BookServiceRepository extends DBConfig {
     }
 
     private void addSearchCriteriaParametersToStatement(PreparedStatement statement, SearchCriteria searchCriteria) throws SQLException {
-        if (searchCriteria.getTitle() != null) {
-            statement.setString(1, "%" + searchCriteria.getTitle() + "%");
+        addCriteriaParameter(searchCriteria.getTitle(), statement, 1);
+        addCriteriaParameter(searchCriteria.getAuthor(), statement, 2);
+        addCriteriaParameter(searchCriteria.getGenre(), statement, 3);
+        addCriteriaParameter(searchCriteria.getDescription(), statement, 4);
+        addCriteriaYearParameter(statement, searchCriteria);
+    }
+
+    private static void addCriteriaYearParameter(PreparedStatement statement, SearchCriteria searchCriteria) throws SQLException {
+        if (searchCriteria.getYear() > 0) {
+            statement.setString(5, getStartDate(searchCriteria));
+            statement.setString(6, getEndDate(searchCriteria));
+        } else {
+            String startDateWhenEmptyCriteria = "0001-01-01 00:00:00.000000";
+            String endDateWhenEmptyCriteria = "9999-12-31 23:59:59.999999'";
+            statement.setString(5, startDateWhenEmptyCriteria);
+            statement.setString(6, endDateWhenEmptyCriteria);
         }
-        if (searchCriteria.getAuthor() != null) {
-            statement.setString(2, "%" + searchCriteria.getAuthor() + "%");
-        }
-        if (searchCriteria.getGenre() != null) {
-            statement.setString(3, "%" + searchCriteria.getGenre() + "%");
-        }
-        if (searchCriteria.getDescription() != null) {
-            statement.setString(4, "%" + searchCriteria.getDescription() + "%");
-        }
-        if (searchCriteria.getYear() != null) {
-            statement.setString(5, searchCriteria.getYear() + "-01-01");
-            statement.setString(6, searchCriteria.getYear() + "-12-31");
-        }
+    }
+
+    private static void addCriteriaParameter(String searchCriteria, PreparedStatement statement, int parameterIndex) throws SQLException {
+        if (!searchCriteria.isEmpty()) {
+            statement.setString(parameterIndex, "%" + searchCriteria + "%");
+        } else statement.setString(parameterIndex, "%%");
+    }
+
+    private static String getEndDate(SearchCriteria searchCriteria) {
+        return searchCriteria.getYear() + "-12-31 23:59:59.999999'";
+    }
+
+    private static String getStartDate(SearchCriteria searchCriteria) {
+        return searchCriteria.getYear() + "-01-01 00:00:00.000000";
     }
 
     private static Book getBookFromSet(ResultSet resultSet) throws SQLException {
