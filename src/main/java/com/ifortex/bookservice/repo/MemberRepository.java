@@ -1,7 +1,7 @@
 package com.ifortex.bookservice.repo;
 
-import com.ifortex.bookservice.model.Book;
 import com.ifortex.bookservice.model.Member;
+import org.springframework.stereotype.Repository;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Repository
 public class MemberRepository extends DBConfig {
 
     public Member findMember() throws SQLException {
