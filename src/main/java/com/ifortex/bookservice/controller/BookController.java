@@ -19,7 +19,6 @@ import java.util.Map;
 @AllArgsConstructor
 public class BookController {
 
-    @Qualifier("bookServiceImpl")
     private final BookService bookService;
 
   @GetMapping("/statistic")
